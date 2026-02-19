@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab Paper Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-a"></div>
+    <div class="bg-shape bg-shape-b"></div>
+
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">University of Fukui · Hasegawa Lab</p>
+          <h1>Paper Reading Tracker</h1>
+          <p class="subtext">Track papers, collaborate, and keep momentum with clear objectives.</p>
+        </div>
+        <div class="header-actions">
+          <div id="userChip" class="user-chip hidden"></div>
+          <button id="logoutBtn" class="btn btn-ghost hidden">Log Out</button>
+          <button id="leaveBtn" class="btn btn-danger hidden">Leave Workspace</button>
+        </div>
+      </header>
+      <p id="appError" class="auth-error hidden"></p>
+
+      <section id="authPanel" class="panel auth-panel">
+        <h2>Join the Lab Workspace</h2>
+        <p>
+          Anyone with this link can join. Enter your name/email once, and this browser session
+          will be remembered on return.
+        </p>
+        <p id="authError" class="auth-error hidden"></p>
+        <form id="joinForm" class="join-form">
+          <label>
+            Your Name
+            <input id="joinName" type="text" placeholder="e.g., Shunsuke Sakai" required />
+          </label>
+          <label>
+            Email (used as your local account key)
+            <input id="joinEmail" type="email" placeholder="name@example.com" required />
+          </label>
+          <button id="joinBtn" type="submit" class="btn btn-primary">Join Workspace</button>
+        </form>
+        <div id="knownMembers" class="known-members hidden"></div>
+      </section>
+
+      <section id="appPanel" class="app-layout hidden">
+        <aside class="sidebar panel">
+          <nav class="sidebar-nav">
+            <button class="nav-item active" data-page="dashboardPage">🏠 Dashboard</button>
+            <button class="nav-item" data-page="objectivePage">🎯 Objective</button>
+            <button class="nav-item" data-page="addPaperPage">➕ Add Paper</button>
+            <button class="nav-item" data-page="papersPage">📚 Paper Records</button>
+            <button class="nav-item" data-page="leaderboardPage">🏆 Leaderboard</button>
+            <button class="nav-item" data-page="profilePage">👤 Profile</button>
+          </nav>
+        </aside>
+
+        <section class="content-stack">
+          <section id="dashboardPage" class="page panel">
+            <div class="panel-head">
+              <h2>My Reading Status</h2>
+            </div>
+            <div class="stats-cards">
+              <article class="stat-card">
+                <p>Papers Read</p>
+                <strong id="statPapers">0</strong>
+              </article>
+              <article class="stat-card">
+                <p>Total Reading Time</p>
+                <strong id="statTotalTime">0 min</strong>
+              </article>
+              <article class="stat-card">
+                <p>Average Time / Paper</p>
+                <strong id="statAvgTime">0 min</strong>
+              </article>
+            </div>
+
+            <section class="objective-summary">
+              <div class="panel-head">
+                <h3>Objective Progress</h3>
+                <p id="objectiveBadge">Not set</p>
+              </div>
+              <div class="progress-bar-wrap">
+                <div id="objectiveProgressBar" class="progress-bar"></div>
+              </div>
+              <p id="objectiveCountdown" class="objective-countdown">No objective countdown yet.</p>
+              <p id="objectiveStatus" class="objective-status">No objective set yet.</p>
+            </section>
+
+            <section class="collab-summary">
+              <div class="panel-head">
+                <h3>Lab Collaboration Snapshot</h3>
+                <p>Shared progress in this workspace</p>
+              </div>
+              <div class="stats-cards team-stats">
+                <article class="stat-card">
+                  <p>Members</p>
+                  <strong id="teamMembersStat">0</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Total Papers</p>
+                  <strong id="teamPapersStat">0</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Total Reading Time</p>
+                  <strong id="teamMinutesStat">0 min</strong>
+                </article>
+                <article class="stat-card">
+                  <p>Active Readers (7d)</p>
+                  <strong id="activeReadersStat">0</strong>
+                </article>
+              </div>
+              <div class="collab-grid">
+                <article class="mini-panel">
+                  <h4>Recent Lab Activity</h4>
+                  <ul id="activityList" class="activity-list"></ul>
+                </article>
+                <article class="mini-panel">
+                  <h4>Top Readers (30 days)</h4>
+                  <ul id="topReadersList" class="activity-list"></ul>
+                </article>
+              </div>
+            </section>
+
+            <div class="chart-wrap">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </section>
+
+          <section id="objectivePage" class="page panel hidden">
+            <div class="panel-head">
+              <h2>Set Objective (One-Time)</h2>
+            </div>
+            <p id="objectiveLockNote" class="subtext">Set your objective once. It cannot be changed later.</p>
+            <ul class="helper-list">
+              <li>Set a realistic target for your reading period.</li>
+              <li>After save, objective values are locked to keep tracking fair.</li>
+              <li>Progress and countdown update automatically in real time.</li>
+            </ul>
+            <form id="objectiveForm" class="form">
+              <label>
+                Target Papers
+                <input id="targetPapers" type="number" min="1" required />
+              </label>
+              <div class="date-row">
+                <label>
+                  Start Date
+                  <input id="startDate" type="date" required />
+                </label>
+                <label>
+                  End Date
+                  <input id="endDate" type="date" required />
+                </label>
+              </div>
+              <button id="objectiveSubmitBtn" type="submit" class="btn btn-primary">Save Objective</button>
+            </form>
+            <p id="objectivePageCountdown" class="objective-countdown hidden"></p>
+            <div id="objectiveLockedCard" class="objective-locked hidden"></div>
+          </section>
+
+          <section id="addPaperPage" class="page panel hidden">
+            <div class="panel-head">
+              <h2>Add Paper Record</h2>
+            </div>
+            <ul class="helper-list">
+              <li>Add one record after each paper reading session.</li>
+              <li>Paste memo URL to share notes with lab members.</li>
+              <li>You can edit/delete only your own records.</li>
+            </ul>
+            <form id="paperForm" class="form">
+              <p id="paperFormMode" class="subtext hidden">Editing paper record</p>
+              <label>
+                Paper Title
+                <input id="paperTitle" type="text" required />
+              </label>
+              <label>
+                Paper URL
+                <input id="paperUrl" type="url" required />
+              </label>
+              <label>
+                Reading Time (minutes)
+                <input id="paperTime" type="number" min="1" required />
+              </label>
+              <label>
+                Reading Memo Link
+                <input id="memoUrl" type="url" required />
+              </label>
+              <div class="row-actions">
+                <button id="paperSubmitBtn" type="submit" class="btn btn-primary">Save Record</button>
+                <button id="clearPaperBtn" type="button" class="btn btn-secondary">Clear</button>
+                <button id="cancelEditBtn" type="button" class="btn btn-secondary hidden">Cancel Edit</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="papersPage" class="page panel hidden">
+            <div class="panel-head">
+              <h2>Paper Records</h2>
+              <div class="paper-filters">
+                <input id="paperSearch" type="search" placeholder="Search title or reader" />
+                <button id="showAllPapersBtn" class="btn btn-small btn-secondary">All Members</button>
+                <button id="showMyPapersBtn" class="btn btn-small btn-secondary">Only Mine</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Reader</th>
+                    <th>Title</th>
+                    <th>Reading Time</th>
+                    <th>Memo</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="papersBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="prevPageBtn" class="btn btn-small btn-secondary">Prev</button>
+              <span id="pageInfo">Page 1 / 1</span>
+              <button id="nextPageBtn" class="btn btn-small btn-secondary">Next</button>
+            </div>
+          </section>
+
+          <section id="leaderboardPage" class="page panel hidden">
+            <div class="panel-head">
+              <h2>Leaderboard</h2>
+              <p>Top readers in the shared workspace</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Member</th>
+                    <th>Papers</th>
+                    <th>Total Time</th>
+                    <th>7-Day Trend</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="profilePage" class="page panel hidden">
+            <div class="panel-head">
+              <h2>Member Profile</h2>
+              <button id="closeProfileBtn" class="btn btn-small btn-secondary">Clear Profile</button>
+            </div>
+            <div id="profileContent"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
