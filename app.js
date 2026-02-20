@@ -676,6 +676,10 @@ function renderLeaderboard() {
     .map((r, i) => {
       const trendClass = r.trend > 0 ? "trend-up" : r.trend < 0 ? "trend-down" : "trend-flat";
       const trendText = r.trend > 0 ? `+${r.trend}` : `${r.trend}`;
+      const objective = objectivesByUid[r.uid];
+      const objectiveText = objective
+        ? `${r.count}/${objective.targetPapers} (${computePercent(r.count, objective.targetPapers)}%)`
+        : "Not set";
       return `
       <tr>
         <td>${i + 1}</td>
@@ -683,6 +687,7 @@ function renderLeaderboard() {
         <td>${r.count}</td>
         <td>${r.minutes} min</td>
         <td class="${trendClass}">${trendText}</td>
+        <td>${objectiveText}</td>
       </tr>`;
     })
     .join("");
@@ -818,6 +823,30 @@ function renderSelectedProfile() {
   const recent = [...userPapers]
     .sort((a, b) => new Date(b.readAt || 0) - new Date(a.readAt || 0))
     .slice(0, 10);
+  const objective = objectivesByUid[selectedProfileUid];
+  const progressPercent = objective ? computePercent(count, objective.targetPapers) : 0;
+  const remaining = objective ? Math.max(0, Number(objective.targetPapers) - count) : 0;
+  const objectiveSection = objective
+    ? `
+      <section class="objective-locked">
+        <p class="objective-lock-title">🎯 Objective Progress</p>
+        <div class="objective-meta">
+          <div class="objective-chip">Target: ${objective.targetPapers} papers</div>
+          <div class="objective-chip">Progress: ${count}/${objective.targetPapers} (${progressPercent}%)</div>
+          <div class="objective-chip">Remaining: ${remaining}</div>
+          <div class="objective-chip">Duration: ${formatDateLong(objective.startDate)} - ${formatDateLong(
+            objective.endDate
+          )}</div>
+        </div>
+        <p class="objective-countdown">⏳ ${getObjectiveTimeMeta(objective.startDate, objective.endDate).label}</p>
+      </section>
+    `
+    : `
+      <section class="objective-locked">
+        <p class="objective-lock-title">🎯 Objective Progress</p>
+        <p class="subtext">No objective set yet.</p>
+      </section>
+    `;
 
   profileContent.innerHTML = `
     <h3>${escapeHtml(name)}</h3>
@@ -827,6 +856,7 @@ function renderSelectedProfile() {
       <article class="stat-card"><p>Total Time</p><strong>${totalMin} min</strong></article>
       <article class="stat-card"><p>Average</p><strong>${avgMin} min</strong></article>
     </div>
+    ${objectiveSection}
     <h3>Recent Papers</h3>
     <ul class="profile-list">
       ${
@@ -886,6 +916,9 @@ function startObjectiveTicker() {
   if (!objectiveCache) return;
   objectiveTickerId = setInterval(() => {
     updateObjectiveCountdown();
+    if (selectedProfileUid) {
+      renderSelectedProfile();
+    }
   }, 1000);
 }
 
@@ -927,9 +960,18 @@ function getPastWeeks(weekCount) {
 }
 
 function getObjectiveTimeMeta(startDate, endDate) {
+  const startYmd = normalizeYmdDate(startDate);
+  const endYmd = normalizeYmdDate(endDate);
+  if (!startYmd || !endYmd) {
+    return { label: "Objective date is invalid." };
+  }
+
   const now = new Date();
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T23:59:59`);
+  const start = new Date(`${startYmd}T00:00:00`);
+  const end = new Date(`${endYmd}T23:59:59`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return { label: "Objective date is invalid." };
+  }
 
   if (now < start) {
     return { label: `Starts in ${formatCountdown(start.getTime() - now.getTime())}` };
@@ -941,6 +983,9 @@ function getObjectiveTimeMeta(startDate, endDate) {
 }
 
 function formatCountdown(ms) {
+  if (!Number.isFinite(ms)) {
+    return "0d 0h 0m 0s";
+  }
   const sec = Math.max(0, Math.floor(ms / 1000));
   const days = Math.floor(sec / 86400);
   const hours = Math.floor((sec % 86400) / 3600);
@@ -960,13 +1005,39 @@ function formatDate(value) {
 }
 
 function formatDateLong(value) {
-  const d = new Date(value || 0);
+  const ymd = normalizeYmdDate(value);
+  const d = ymd ? new Date(`${ymd}T00:00:00`) : new Date(value || 0);
   if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
+}
+
+function computePercent(done, target) {
+  const denominator = Number(target);
+  if (!Number.isFinite(denominator) || denominator <= 0) return 0;
+  return Math.min(100, Math.round((Number(done) / denominator) * 100));
+}
+
+function normalizeYmdDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return value.toISOString().slice(0, 10);
+  }
+
+  const text = String(value).trim();
+  const direct = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (direct) return text;
+
+  const leading = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (leading) return leading[1];
+
+  const d = new Date(text);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
 }
 
 function relativeTime(value) {

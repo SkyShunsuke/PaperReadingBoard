@@ -678,8 +678,8 @@ function mapObjectiveRow(row) {
   return {
     uid: row.uid,
     targetPapers: Number(row.target_papers),
-    startDate: String(row.start_date),
-    endDate: String(row.end_date),
+    startDate: toYmdDate(row.start_date),
+    endDate: toYmdDate(row.end_date),
     createdAt: toIso(row.created_at),
   };
 }
@@ -688,6 +688,25 @@ function toIso(value) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
+}
+
+function toYmdDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return value.toISOString().slice(0, 10);
+  }
+
+  const text = String(value).trim();
+  const direct = text.match(/^(\d{4}-\d{2}-\d{2})$/);
+  if (direct) return direct[1];
+
+  const leading = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (leading) return leading[1];
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
 }
 
 function ensureStoreFile(dataDir, storeFile) {
